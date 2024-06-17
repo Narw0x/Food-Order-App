@@ -260,3 +260,19 @@ h1 {
     transform: translateY(0);
   }
 }
+
+.error{
+  color: rgb(227, 2, 2);
+  font-size: 1.5rem;
+  text-align: center;
+  background-color: rgb(231, 141, 141);
+  margin: auto;
+  width: 35%;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+.error h2, .error p{
+  margin: 0;
+  padding: 0.25rem;
+}

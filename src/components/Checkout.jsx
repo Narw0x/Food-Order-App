@@ -5,10 +5,20 @@ import Modal from "./UI/Modal";
 import { currencyFormatter } from "../util/formatting";
 import Input from "./UI/Input";
 import Button from "./UI/Button";
+import useHttp from "../hooks/useHttp";
+
+const requestConfig = {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    }
+};
 
 export default function Checkout(){
     const cartCtx = useContext(CartContext);
     const userProgressCtx = useContext(UserProgressContext);
+
+    const {error, isLoading, data, sendRequest, clearData} = useHttp('http://localhost:3000/orders', requestConfig, []);
 
     const cartTotal = cartCtx.items.reduce((totalPrice, item) => totalPrice + item.quantity * item.price, 0);
 
@@ -16,13 +26,59 @@ export default function Checkout(){
         userProgressCtx.hideCheckout();
     }
 
+    function handleFinish(){
+        userProgressCtx.hideCheckout();
+        cartCtx.clearCart();
+        clearData();
+    }
+
+    function handleSubmit(e){
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const customerData = Object.fromEntries(formData.entries());
+
+        sendRequest(
+            JSON.stringify({
+                order: {
+                    customer: customerData,
+                    items : cartCtx.items
+                }
+            })
+        )
+    }
+
+    let actions = (
+        <>
+            <Button type="button" textOnly onClick={handleClose}>Close</Button>
+            <Button>Submit Order</Button>
+        </>
+    );
+
+    if(isLoading){
+        actions = <span>Sending Order...</span>
+    }
+
+    if((data.length !== 0) && !error){
+        console.log(data);
+        return (
+            <Modal open={userProgressCtx.progress === 'checkout'} onClose={handleFinish}>
+                <h2>Success!</h2>
+                <p>Your order was successfully submitted!</p>
+                <p className="modal-actions">
+                    <Button onClick={handleFinish}>Okay</Button>
+                </p>
+            </Modal>
+        )
+    }
+
     return(
         <Modal open={userProgressCtx.progress === 'checkout'} onClose={handleClose}>
-            <form action="">
+            <form onSubmit={handleSubmit}>
                 <h2>Checkout</h2>
                 <p>Total Amount: {currencyFormatter.format(cartTotal)}</p>
 
-                <Input label="Full Name" id="full-name"  type="text"/>
+                <Input label="Full Name" id="name"  type="text"/>
                 <Input label="Email" id="email"  type="email"/>
                 <Input label="Street" id="street"  type="text"/>
                 <div className="control-row">
@@ -30,10 +86,9 @@ export default function Checkout(){
                     <Input label="City" id="city"  type="text"/>
                 </div>
                 
-
+                {error && <Error title="Failed to submit the order" message="Try again"/>}
                 <p className="modal-actions">
-                    <Button type="button" textOnly onClick={handleClose}>Close</Button>
-                    <Button>Submit Order</Button>
+                    {actions}
                 </p>
             </form>
         </Modal>
